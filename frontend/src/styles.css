@@ -18,9 +18,9 @@ body {
 }
 
 main {
-  max-width: 900px;
+  max-width: 1100px;
   margin: 0 auto;
-  padding: 56px 50px 80px;
+  padding: 56px 40px 80px;
 }
 
 h1 {
@@ -28,6 +28,17 @@ h1 {
   font-weight: 600;
   margin: 0 0 32px;
   letter-spacing: -0.02em;
+}
+
+.layout {
+  display: flex;
+  gap: 40px;
+  align-items: flex-start;
+}
+
+.feed {
+  flex: 1;
+  min-width: 0;
 }
 
 #ideas {
@@ -63,6 +74,7 @@ h1 {
   display: flex;
   flex-direction: row;
   align-items: center;
+  gap: 10px;
   min-width: 0;
 }
 
@@ -91,11 +103,33 @@ h1 {
 }
 
 .composer {
-  margin-top: 48px;
-  padding-top: 24px;
-  border-top: 1px solid var(--line);
+  position: sticky;
+  top: 40px;
+  align-self: flex-start;
+  width: 320px;
+  border-left: 1px solid var(--line);
+  padding-left: 24px;
   display: grid;
   gap: 14px;
+}
+
+.auth-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.auth-btn {
+  padding: 10px 10px;
+  border: 1px solid var(--line);
+  background: transparent;
+  font-family: inherit;
+  font-size: 14px;
+  cursor: pointer;
+  background: var(--text);
+  color: var(--bg);
 }
 
 label {
@@ -103,12 +137,22 @@ label {
   color: var(--muted);
 }
 
-input {
+input,
+textarea {
   width: 100%;
   padding: 10px 12px;
   border: 1px solid var(--line);
   font-family: inherit;
   font-size: 16px;
+}
+
+textarea {
+  resize: vertical;
+}
+
+#idea-input {
+  margin-bottom: 8px;
+  height: 150px;
 }
 
 button#post-btn {
@@ -125,4 +169,43 @@ button#post-btn {
   font-size: 14px;
   color: var(--muted);
   min-height: 20px;
+}
+
+.sentinel {
+  font-size: 14px;
+  color: var(--muted);
+  padding: 16px 0;
+}
+
+.captcha-wrap {
+  opacity: 0;
+  animation: fadeIn 300ms ease forwards;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 900px) {
+  .layout {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .composer {
+    position: static;
+    width: 100%;
+    border-left: none;
+    padding-left: 0;
+    margin-top: 32px;
+    padding-top: 24px;
+    border-top: 1px solid var(--line);
+  }
 }

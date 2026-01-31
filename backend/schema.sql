@@ -13,3 +13,16 @@ CREATE TABLE IF NOT EXISTS idea_votes (
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   PRIMARY KEY (idea_id, voter)
 );
+
+CREATE TABLE IF NOT EXISTS oauth_states (
+  state TEXT PRIMARY KEY,
+  code_verifier TEXT NOT NULL,
+  return_to TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS sessions (
+  token TEXT PRIMARY KEY,
+  handle TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);

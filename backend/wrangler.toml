@@ -4,6 +4,10 @@ compatibility_date = "2024-10-01"
 
 [vars]
 TURNSTILE_SECRET_KEY = "1x0000000000000000000000000000000AA"
+X_CLIENT_ID = "YOUR_X_CLIENT_ID"
+X_CLIENT_SECRET = "YOUR_X_CLIENT_SECRET"
+X_REDIRECT_URI = "http://localhost:8787/auth/x/callback"
+X_SCOPES = "users.read"
 
 [[d1_databases]]
 binding = "DB"
