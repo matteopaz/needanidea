@@ -1,0 +1,11 @@
+name = "needanidea-backend"
+main = "src/index.js"
+compatibility_date = "2024-10-01"
+
+[vars]
+TURNSTILE_SECRET_KEY = "1x0000000000000000000000000000000AA"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "needanidea"
+database_id = "YOUR_D1_DATABASE_ID"
