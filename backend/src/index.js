@@ -227,7 +227,13 @@ export default {
       const offset = Number.isFinite(rawOffset) ? Math.max(rawOffset, 0) : 0;
       const { results } = await env.DB.prepare(
         `SELECT ideas.id, ideas.content, ideas.author, ideas.upvotes,
-          COALESCE(v.delta, 0) AS my_vote
+          COALESCE(v.delta, 0) AS my_vote,
+          COALESCE((SELECT COUNT(1) FROM comments c WHERE c.idea_id = ideas.id), 0)
+            AS comment_count,
+          (SELECT c.content FROM comments c WHERE c.idea_id = ideas.id ORDER BY c.id DESC LIMIT 1)
+            AS top_comment,
+          (SELECT c.author FROM comments c WHERE c.idea_id = ideas.id ORDER BY c.id DESC LIMIT 1)
+            AS top_comment_author
          FROM ideas
          LEFT JOIN idea_votes v
            ON v.idea_id = ideas.id AND v.voter = ?1
@@ -273,7 +279,73 @@ export default {
         .run();
 
       const id = result.meta.last_row_id;
-      return jsonResponse({ id, content, author, upvotes: 0 }, 201);
+      return jsonResponse(
+        {
+          id,
+          content,
+          author,
+          upvotes: 0,
+          my_vote: 0,
+          comment_count: 0,
+          top_comment: null,
+          top_comment_author: null,
+        },
+        201
+      );
+    }
+
+    if (url.pathname.startsWith("/api/ideas/") && url.pathname.endsWith("/comments")) {
+      const parts = url.pathname.split("/");
+      const id = Number(parts[3]);
+      if (!id) {
+        return jsonResponse({ error: "Not found" }, 404);
+      }
+
+      const ideaExists = await env.DB.prepare("SELECT id FROM ideas WHERE id = ?1")
+        .bind(id)
+        .first();
+      if (!ideaExists) {
+        return jsonResponse({ error: "Not found" }, 404);
+      }
+
+      if (req.method === "GET") {
+        const { results } = await env.DB.prepare(
+          "SELECT id, content, author, created_at FROM comments WHERE idea_id = ?1 ORDER BY id DESC"
+        )
+          .bind(id)
+          .all();
+        return jsonResponse({ comments: results });
+      }
+
+      if (req.method === "POST") {
+        let body;
+        try {
+          body = await req.json();
+        } catch {
+          return jsonResponse({ error: "Invalid JSON" }, 400);
+        }
+
+        const content = (body.content || "").trim();
+        if (!content || content.length > 200) {
+          return jsonResponse({ error: "Comment must be 1-200 characters" }, 400);
+        }
+
+        const session = await getSession(req, env);
+        const author = session?.handle || "anonymous";
+        const result = await env.DB.prepare(
+          "INSERT INTO comments (idea_id, content, author) VALUES (?1, ?2, ?3)"
+        )
+          .bind(id, content, author)
+          .run();
+
+        const comment = await env.DB.prepare(
+          "SELECT id, content, author, created_at FROM comments WHERE id = ?1"
+        )
+          .bind(result.meta.last_row_id)
+          .first();
+
+        return jsonResponse(comment, 201);
+      }
     }
 
     if (url.pathname.startsWith("/api/ideas/") && req.method === "POST") {
@@ -338,7 +410,13 @@ export default {
 
       const idea = await env.DB.prepare(
         `SELECT ideas.id, ideas.content, ideas.author, ideas.upvotes,
-          COALESCE(v.delta, 0) AS my_vote
+          COALESCE(v.delta, 0) AS my_vote,
+          COALESCE((SELECT COUNT(1) FROM comments c WHERE c.idea_id = ideas.id), 0)
+            AS comment_count,
+          (SELECT c.content FROM comments c WHERE c.idea_id = ideas.id ORDER BY c.id DESC LIMIT 1)
+            AS top_comment,
+          (SELECT c.author FROM comments c WHERE c.idea_id = ideas.id ORDER BY c.id DESC LIMIT 1)
+            AS top_comment_author
          FROM ideas
          LEFT JOIN idea_votes v
            ON v.idea_id = ideas.id AND v.voter = ?2

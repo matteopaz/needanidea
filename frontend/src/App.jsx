@@ -43,6 +43,10 @@ export default function App() {
   const [isMobile, setIsMobile] = useState(false);
   const [mobileView, setMobileView] = useState("feed");
   const [fadeClass, setFadeClass] = useState("");
+  const [commentOpen, setCommentOpen] = useState({});
+  const [commentsByIdea, setCommentsByIdea] = useState({});
+  const [commentDrafts, setCommentDrafts] = useState({});
+  const [commentLoading, setCommentLoading] = useState({});
   const turnstileContainerRef = useRef(null);
   const turnstileWidgetIdRef = useRef(null);
   const sentinelRef = useRef(null);
@@ -141,6 +145,69 @@ export default function App() {
     }
     const updated = await res.json();
     setIdeas((list) => list.map((item) => (item.id === updated.id ? updated : item)));
+  }
+
+  async function fetchComments(ideaId) {
+    setCommentLoading((prev) => ({ ...prev, [ideaId]: true }));
+    const res = await fetch(`${API_BASE}/ideas/${ideaId}/comments`, {
+      headers: authHeaders(),
+    });
+    if (!res.ok) {
+      setStatus("failed to load comments");
+      setCommentLoading((prev) => ({ ...prev, [ideaId]: false }));
+      return;
+    }
+    const data = await res.json();
+    setCommentsByIdea((prev) => ({ ...prev, [ideaId]: data.comments || [] }));
+    setCommentLoading((prev) => ({ ...prev, [ideaId]: false }));
+  }
+
+  function toggleComments(ideaId) {
+    const isOpen = Boolean(commentOpen[ideaId]);
+    setCommentOpen((prev) => ({ ...prev, [ideaId]: !isOpen }));
+    if (!isOpen && !commentsByIdea[ideaId]) {
+      fetchComments(ideaId);
+    }
+  }
+
+  async function postComment(ideaId) {
+    const draft = (commentDrafts[ideaId] || "").trim();
+    if (!draft) {
+      setStatus("please add a comment");
+      return;
+    }
+    if (draft.length > 200) {
+      setStatus("comment must be 1-200 characters");
+      return;
+    }
+    const res = await fetch(`${API_BASE}/ideas/${ideaId}/comments`, {
+      method: "POST",
+      headers: { "content-type": "application/json", ...authHeaders() },
+      body: JSON.stringify({ content: draft }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      setStatus(err.error || "failed to post comment");
+      return;
+    }
+    const comment = await res.json();
+    setCommentsByIdea((prev) => ({
+      ...prev,
+      [ideaId]: [comment, ...(prev[ideaId] || [])],
+    }));
+    setCommentDrafts((prev) => ({ ...prev, [ideaId]: "" }));
+    setIdeas((list) =>
+      list.map((item) =>
+        item.id === ideaId
+          ? {
+              ...item,
+              comment_count: (item.comment_count || 0) + 1,
+              top_comment: comment.content,
+              top_comment_author: comment.author,
+            }
+          : item
+      )
+    );
   }
 
   async function postIdea() {
@@ -317,10 +384,10 @@ export default function App() {
             </div>
             <section id="ideas">
               {ideas.map((idea) => (
-                <div className="idea" key={idea.id}>
+              <div className="idea" key={idea.id}>
+                <div className="idea-row">
                   <div className="idea-content">
                     <p className="idea-text">{idea.content}</p>
-                    <div className="idea-meta">{idea.author}</div>
                   </div>
                   <div className="votes">
                     <button
@@ -338,7 +405,82 @@ export default function App() {
                     </button>
                   </div>
                 </div>
-              ))}
+                <div className="idea-meta-row">
+                  <div className="idea-meta">{idea.author}</div>
+                  <button
+                    className="comment-toggle"
+                    onClick={() => toggleComments(idea.id)}
+                  >
+                    {commentOpen[idea.id]
+                      ? "hide comments"
+                      : (idea.comment_count || 0) === 0
+                      ? "leave a comment"
+                      : `show ${idea.comment_count || 0} comment${
+                          (idea.comment_count || 0) === 1 ? "" : "s"
+                        }`}
+                  </button>
+                </div>
+                {idea.top_comment || commentOpen[idea.id] ? (
+                  <div className="comment-thread">
+                    {idea.top_comment ? (
+                      <div className="comment-preview">
+                        “{idea.top_comment}”
+                        <span className="comment-preview-author">
+                          — {idea.top_comment_author}
+                        </span>
+                      </div>
+                    ) : null}
+                    {commentOpen[idea.id] ? (
+                      <div className="comment-panel">
+                        {commentLoading[idea.id] ? (
+                          <div className="comment-muted">loading...</div>
+                        ) : null}
+                        {!commentLoading[idea.id] &&
+                        (commentsByIdea[idea.id] || []).length === 0 ? (
+                          <div className="comment-muted">no comments yet</div>
+                        ) : null}
+                        {(commentsByIdea[idea.id] || [])
+                          .filter((comment, index) => {
+                            if (!idea.top_comment) return true;
+                            if (index !== 0) return true;
+                            return (
+                              comment.content !== idea.top_comment ||
+                              comment.author !== idea.top_comment_author
+                            );
+                          })
+                          .map((comment) => (
+                            <div className="comment-item" key={comment.id}>
+                              <span className="comment-content">{comment.content}</span>
+                              <span className="comment-author">— {comment.author}</span>
+                            </div>
+                          ))}
+                        <div className="comment-form">
+                          <textarea
+                            className="comment-input"
+                            maxLength={200}
+                            placeholder="leave a comment (max 200)"
+                            value={commentDrafts[idea.id] || ""}
+                            rows={2}
+                            onInput={(e) =>
+                              setCommentDrafts((prev) => ({
+                                ...prev,
+                                [idea.id]: e.target.value,
+                              }))
+                            }
+                          />
+                          <button
+                            className="comment-submit"
+                            onClick={() => postComment(idea.id)}
+                          >
+                            comment
+                          </button>
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
+                ) : null}
+              </div>
+            ))}
             </section>
             <div className="sentinel" ref={sentinelRef}>
               {loading ? "loading..." : hasMore ? "" : "no more ideas :("}

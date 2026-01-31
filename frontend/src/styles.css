@@ -3,7 +3,7 @@
   --text: #111111;
   --muted: #5a5a5a;
   --line: #e5e5e5;
-  --spacing: 18px;
+  --spacing: 20px;
 }
 
 * {
@@ -84,15 +84,31 @@ h1 {
 
 .idea {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: var(--spacing);
+  flex-direction: column;
+  gap: 6px;
   border-bottom: 1px solid var(--line);
   padding: 0 0.5vw var(--spacing);
 }
 
+.idea-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--spacing);
+}
+
 .idea-content {
   flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.idea-meta-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
 }
 
 .idea-text {
@@ -103,6 +119,90 @@ h1 {
 .idea-meta {
   font-size: 14px;
   color: var(--muted);
+}
+
+.comment-thread {
+  margin-top: 8px;
+  padding-left: 14px;
+  border-left: 1px solid var(--line);
+}
+
+.comment-preview {
+  font-size: 14px;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.comment-preview-author {
+  margin-left: 6px;
+  font-style: italic;
+}
+
+.comment-toggle {
+  border: none;
+  padding: 0;
+  background: transparent;
+  color: var(--muted);
+  font-family: inherit;
+  font-style: italic;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.comment-toggle:hover {
+  color: var(--text);
+}
+
+.comment-panel {
+  margin-top: 10px;
+  display: grid;
+  gap: 8px;
+}
+
+.comment-item {
+  font-size: 14px;
+  color: var(--text);
+}
+
+.comment-author {
+  margin-left: 6px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.comment-muted {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.comment-form {
+  display: grid;
+  gap: 6px;
+}
+
+.comment-input {
+  border: 1px solid var(--line);
+  resize: vertical;
+  padding: 8px 10px;
+  font-size: 14px;
+}
+
+.comment-submit {
+  justify-self: end;
+  padding: 6px 12px;
+  border: 1px solid var(--line);
+  background: transparent;
+  font-family: inherit;
+  font-size: 14px;
+  cursor: pointer;
+  color: var(--muted);
+}
+
+.comment-submit:hover {
+  border-color: var(--text);
+  color: var(--text);
 }
 
 .votes {
@@ -332,7 +432,7 @@ button#post-btn:hover {
 
 @media (max-width: 900px) {
   :root {
-    --spacing: 12px;
+    --spacing: 14px;
   }
 
   .layout {
