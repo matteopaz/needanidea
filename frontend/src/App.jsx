@@ -37,11 +37,17 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [showCaptcha, setShowCaptcha] = useState(false);
+  const [anonymous, setAnonymous] = useState(true);
   const [user, setUser] = useState(null);
+  const [authReady, setAuthReady] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const [mobileView, setMobileView] = useState("feed");
+  const [fadeClass, setFadeClass] = useState("");
   const turnstileContainerRef = useRef(null);
   const turnstileWidgetIdRef = useRef(null);
   const sentinelRef = useRef(null);
   const loadingRef = useRef(false);
+  const transitionRef = useRef([]);
 
   function authHeaders() {
     const token = getStoredToken();
@@ -52,18 +58,22 @@ export default function App() {
     const token = getStoredToken();
     if (!token) {
       setUser(null);
+      setAuthReady(true);
       return;
     }
+    setAuthReady(false);
     const res = await fetch(`${API_BASE}/me`, {
       headers: { authorization: `Bearer ${token}` },
     });
     if (!res.ok) {
       clearStoredToken();
       setUser(null);
+      setAuthReady(true);
       return;
     }
     const data = await res.json();
     setUser(data.user || null);
+    setAuthReady(true);
   }
 
   function getTurnstileToken() {
@@ -72,6 +82,26 @@ export default function App() {
     }
     const input = document.querySelector('input[name="cf-turnstile-response"]');
     return input ? input.value : "";
+  }
+
+  function clearTransitions() {
+    transitionRef.current.forEach((id) => clearTimeout(id));
+    transitionRef.current = [];
+  }
+
+  function switchMobileView(nextView) {
+    if (!isMobile || mobileView === nextView || fadeClass) return;
+    clearTransitions();
+    setFadeClass("is-fading-out");
+    const outId = setTimeout(() => {
+      setMobileView(nextView);
+      setFadeClass("is-fading-in");
+      const inId = setTimeout(() => {
+        setFadeClass("");
+      }, 250);
+      transitionRef.current.push(inId);
+    }, 250);
+    transitionRef.current.push(outId);
   }
 
   const fetchIdeasPage = useCallback(async (offset, replace = false) => {
@@ -97,10 +127,6 @@ export default function App() {
   }, []);
 
   async function vote(idea, delta) {
-    if (!user) {
-      setStatus("sign in with X to vote");
-      return;
-    }
     const currentVote = idea.my_vote || 0;
     if (currentVote === delta) return;
     const res = await fetch(`${API_BASE}/ideas/${idea.id}/vote`, {
@@ -114,18 +140,14 @@ export default function App() {
       return;
     }
     const updated = await res.json();
-    setIdeas((list) => {
-      const next = list.map((item) => (item.id === updated.id ? updated : item));
-      next.sort((a, b) => (b.upvotes - a.upvotes) || (b.id - a.id));
-      return next;
-    });
+    setIdeas((list) => list.map((item) => (item.id === updated.id ? updated : item)));
   }
 
   async function postIdea() {
     const trimmedContent = content.trim();
     const token = getTurnstileToken();
 
-    if (!user) {
+    if (!user && !anonymous) {
       setStatus("sign in with X to post");
       return;
     }
@@ -152,6 +174,7 @@ export default function App() {
       headers: { "content-type": "application/json", ...authHeaders() },
       body: JSON.stringify({
         content: trimmedContent,
+        anonymous,
         token,
       }),
     });
@@ -169,7 +192,11 @@ export default function App() {
     setStatus("posted");
     setIdeas([]);
     setHasMore(true);
+    setShowCaptcha(false);
     fetchIdeasPage(0, true);
+    if (isMobile) {
+      switchMobileView("feed");
+    }
   }
 
   function startAuth() {
@@ -182,6 +209,8 @@ export default function App() {
   function signOut() {
     clearStoredToken();
     setUser(null);
+    setAnonymous(true);
+    setAuthReady(true);
   }
 
   useEffect(() => {
@@ -197,6 +226,41 @@ export default function App() {
     loadMe();
     fetchIdeasPage(0, true);
   }, [fetchIdeasPage]);
+
+  useEffect(() => {
+    if (user) {
+      setAnonymous(false);
+    } else {
+      setAnonymous(true);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const media = window.matchMedia("(max-width: 900px)");
+    const update = () => {
+      setIsMobile(media.matches);
+      if (!media.matches) {
+        clearTransitions();
+        setFadeClass("");
+        setMobileView("feed");
+      }
+    };
+    update();
+    if (media.addEventListener) {
+      media.addEventListener("change", update);
+    } else {
+      media.addListener(update);
+    }
+    return () => {
+      clearTransitions();
+      if (media.removeEventListener) {
+        media.removeEventListener("change", update);
+      } else {
+        media.removeListener(update);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -235,75 +299,113 @@ export default function App() {
     return () => observer.disconnect();
   }, [ideas.length, hasMore, loading, fetchIdeasPage]);
 
+  const showFeed = !isMobile || mobileView === "feed";
+  const showComposer = !isMobile || mobileView === "composer";
+
   return (
     <main>
-      <div className="layout">
-        <section className="feed">
-          <h1>need an idea?</h1>
-          <section id="ideas">
-            {ideas.map((idea) => (
-              <div className="idea" key={idea.id}>
-                <div className="idea-content">
-                  <p className="idea-text">{idea.content}</p>
-                  <div className="idea-meta">by {idea.author}</div>
+      <div className={`layout${isMobile ? " is-mobile" : ""}`}>
+        {showFeed ? (
+          <section className={`feed${fadeClass ? ` ${fadeClass}` : ""}`}>
+            <div className="feed-header">
+              <h1>need an idea?</h1>
+              {isMobile && mobileView === "feed" ? (
+                <button className="mobile-cta" onClick={() => switchMobileView("composer")}>
+                  have an idea? -&gt;
+                </button>
+              ) : null}
+            </div>
+            <section id="ideas">
+              {ideas.map((idea) => (
+                <div className="idea" key={idea.id}>
+                  <div className="idea-content">
+                    <p className="idea-text">{idea.content}</p>
+                    <div className="idea-meta">{idea.author}</div>
+                  </div>
+                  <div className="votes">
+                    <button
+                      className={`vote-btn${idea.my_vote === 1 ? " is-active" : ""}`}
+                      onClick={() => vote(idea, 1)}
+                    >
+                      ▲
+                    </button>
+                    <div className="vote-count">{idea.upvotes}</div>
+                    <button
+                      className={`vote-btn${idea.my_vote === -1 ? " is-active" : ""}`}
+                      onClick={() => vote(idea, -1)}
+                    >
+                      ▼
+                    </button>
+                  </div>
                 </div>
-                <div className="votes">
-                  <button
-                    className={`vote-btn${idea.my_vote === 1 ? " is-active" : ""}`}
-                    onClick={() => vote(idea, 1)}
-                  >
-                    ▲
-                  </button>
-                  <div className="vote-count">{idea.upvotes}</div>
-                  <button
-                    className={`vote-btn${idea.my_vote === -1 ? " is-active" : ""}`}
-                    onClick={() => vote(idea, -1)}
-                  >
-                    ▼
-                  </button>
-                </div>
-              </div>
-            ))}
+              ))}
+            </section>
+            <div className="sentinel" ref={sentinelRef}>
+              {loading ? "loading..." : hasMore ? "" : "no more ideas :("}
+            </div>
           </section>
-          <div className="sentinel" ref={sentinelRef}>
-            {loading ? "loading..." : hasMore ? "" : "no more ideas"}
-          </div>
-        </section>
+        ) : null}
 
-        <aside className="composer">
-          {user ? (
-            <div className="auth-row">
-              <span>signed in as {user.handle}</span>
-              <button className="auth-btn" onClick={signOut}>
-                sign out
+        {showComposer ? (
+          <aside className={`composer${fadeClass ? ` ${fadeClass}` : ""}`}>
+            <div className="composer-header">
+              <h2 className="sidebar-header">have an idea?</h2>
+              {isMobile && mobileView === "composer" ? (
+                <button className="mobile-cta" onClick={() => switchMobileView("feed")}>
+                  need an idea? -&gt;
+                </button>
+              ) : null}
+            </div>
+            <hr />
+            {user ? (
+              <div className="auth-row">
+                <span>signed in as {user.handle}</span>
+                <button className="auth-btn" onClick={signOut}>
+                  sign out
+                </button>
+              </div>
+            ) : authReady ? (
+              <button className="auth-btn" onClick={startAuth}>
+                sign in with 𝕏
+              </button>
+            ) : null}
+            <div>
+              <textarea
+                id="idea-input"
+                maxLength={100}
+                placeholder="something that should exist (max 100 char.)"
+                value={content}
+                rows={3}
+                onInput={(e) => setContent(e.target.value)}
+              />
+            </div>
+            <div className="composer-actions">
+              {user ? (
+                <button
+                  type="button"
+                  className={`anon-toggle${anonymous ? " is-anon" : ""}`}
+                  onClick={() => setAnonymous((value) => !value)}
+                >
+                  <span className="anon-track">
+                    <span className="anon-option anon-user">{user.handle}</span>
+                    <span className="anon-option anon-anon">anonymous</span>
+                  </span>
+                </button>
+              ) : (
+                <div className="anon-label">anonymous</div>
+              )}
+              <button id="post-btn" onClick={postIdea}>
+                post
               </button>
             </div>
-          ) : (
-            <button className="auth-btn" onClick={startAuth}>
-              sign in with 𝕏
-            </button>
-          )}
-          <div>
-            <label htmlFor="idea-input">idea</label>
-            <textarea
-              id="idea-input"
-              maxLength={100}
-              placeholder="a tiny startup idea"
-              value={content}
-              rows={3}
-              onInput={(e) => setContent(e.target.value)}
-            />
-          </div>
-          {showCaptcha ? (
-            <div className="captcha-wrap">
-              <div ref={turnstileContainerRef}></div>
-            </div>
-          ) : null}
-          <button id="post-btn" onClick={postIdea}>
-            post
-          </button>
-          <div id="status">{status}</div>
-        </aside>
+            {showCaptcha ? (
+              <div className="captcha-wrap">
+                <div ref={turnstileContainerRef}></div>
+              </div>
+            ) : null}
+            <div id="status">{status}</div>
+          </aside>
+        ) : null}
       </div>
     </main>
   );

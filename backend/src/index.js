@@ -57,6 +57,14 @@ function getAuthToken(req) {
   return "";
 }
 
+function getVoterId(req) {
+  const ip =
+    req.headers.get("CF-Connecting-IP") ||
+    req.headers.get("X-Forwarded-For")?.split(",")[0]?.trim() ||
+    "";
+  return ip || "local";
+}
+
 async function getSession(req, env) {
   const token = getAuthToken(req);
   if (!token) return null;
@@ -212,7 +220,7 @@ export default {
 
     if (url.pathname === "/api/ideas" && req.method === "GET") {
       const session = await getSession(req, env);
-      const voter = session?.handle || "";
+      const voter = session?.handle || getVoterId(req);
       const rawLimit = Number.parseInt(url.searchParams.get("limit") || "20", 10);
       const rawOffset = Number.parseInt(url.searchParams.get("offset") || "0", 10);
       const limit = Number.isFinite(rawLimit) ? Math.min(Math.max(rawLimit, 1), 50) : 20;
@@ -240,12 +248,13 @@ export default {
       }
 
       const session = await getSession(req, env);
-      if (!session) {
+      const anonymous = Boolean(body.anonymous);
+      if (!session && !anonymous) {
         return jsonResponse({ error: "Sign in required" }, 401);
       }
 
       const content = (body.content || "").trim();
-      const author = session.handle;
+      const author = anonymous ? "anonymous" : session.handle;
       const token = body.token;
 
       if (!content || content.length > 100) {
@@ -297,10 +306,7 @@ export default {
       }
 
       const session = await getSession(req, env);
-      if (!session) {
-        return jsonResponse({ error: "Sign in required" }, 401);
-      }
-      const voter = session.handle;
+      const voter = session?.handle || getVoterId(req);
       const existingVote = await env.DB.prepare(
         "SELECT delta FROM idea_votes WHERE idea_id = ?1 AND voter = ?2"
       )

@@ -3,6 +3,7 @@
   --text: #111111;
   --muted: #5a5a5a;
   --line: #e5e5e5;
+  --spacing: 18px;
 }
 
 * {
@@ -26,8 +27,42 @@ main {
 h1 {
   font-size: clamp(32px, 5vw, 48px);
   font-weight: 600;
-  margin: 0 0 32px;
+  margin: 0;
   letter-spacing: -0.02em;
+}
+
+.feed-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 32px;
+}
+
+.composer-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.composer-header .sidebar-header {
+  margin: 0;
+}
+
+.mobile-cta {
+  font-size: 14px;
+  color: var(--muted);
+  background: transparent;
+  border: none;
+  padding: 0;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.mobile-cta:hover {
+  color: var(--text);
 }
 
 .layout {
@@ -44,16 +79,16 @@ h1 {
 #ideas {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: var(--spacing);
 }
 
 .idea {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 16px;
-  padding-bottom: 16px;
+  gap: var(--spacing);
   border-bottom: 1px solid var(--line);
+  padding: 0 0.5vw var(--spacing);
 }
 
 .idea-content {
@@ -148,11 +183,88 @@ textarea {
 
 textarea {
   resize: vertical;
+  border: none;
+  border-bottom: 1px solid var(--line);
+}
+
+hr {
+  border: none;
+  border-bottom: 2px solid var(--line);
+  margin: 0 0 24px 0;
 }
 
 #idea-input {
   margin-bottom: 8px;
   height: 150px;
+}
+
+.composer-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.anon-toggle {
+  position: relative;
+  overflow: hidden;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  min-width: 14ch;
+  max-width: 20ch;
+  text-align: left;
+  font-family: inherit;
+  font-size: 14px;
+  opacity: 0.75;
+  transition: opacity 150ms ease;
+}
+
+.anon-toggle:hover {
+  opacity: 1;
+}
+
+.anon-track {
+  display: flex;
+  width: 200%;
+  transform: translateX(0);
+  transition: transform 220ms ease;
+  will-change: transform;
+}
+
+.anon-toggle.is-anon .anon-track {
+  transform: translateX(-50%);
+}
+
+.anon-option,
+.anon-label {
+  display: inline-flex;
+  align-items: center;
+  width: 50%;
+  flex: 0 0 50%;
+  font-size: 14px;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.anon-option.anon-user {
+  font-style: italic;
+}
+
+.anon-option.anon-anon {
+  font-style: normal;
+}
+
+.anon-label {
+  font-style: italic;
+  width: auto;
+}
+
+.sidebar-header {
+  margin: 0;
 }
 
 button#post-btn {
@@ -163,6 +275,12 @@ button#post-btn {
   font-size: 16px;
   cursor: pointer;
   width: fit-content;
+  color: var(--muted);
+}
+
+button#post-btn:hover {
+  border-color: var(--text);
+  color: var(--text);
 }
 
 #status {
@@ -182,6 +300,14 @@ button#post-btn {
   animation: fadeIn 300ms ease forwards;
 }
 
+.is-fading-in {
+  animation: fadeIn 250ms ease forwards;
+}
+
+.is-fading-out {
+  animation: fadeOut 250ms ease forwards;
+}
+
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -193,10 +319,29 @@ button#post-btn {
   }
 }
 
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
 @media (max-width: 900px) {
+  :root {
+    --spacing: 12px;
+  }
+
   .layout {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .layout.is-mobile {
+    gap: 24px;
   }
 
   .composer {
@@ -204,8 +349,7 @@ button#post-btn {
     width: 100%;
     border-left: none;
     padding-left: 0;
-    margin-top: 32px;
-    padding-top: 24px;
-    border-top: 1px solid var(--line);
+    margin-top: 0;
+    padding-top: 0;
   }
 }
