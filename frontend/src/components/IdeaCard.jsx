@@ -17,7 +17,7 @@ export default function IdeaCard({
   const commentLabel = isOpen
     ? "hide comments"
     : commentCount === 0
-    ? "leave a comment"
+    ? "leave a comment..."
     : `show ${commentCount} comment${commentCount === 1 ? "" : "s"}`;
   const showThread = Boolean(idea.top_comment) || isOpen;
 

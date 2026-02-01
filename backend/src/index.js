@@ -221,9 +221,9 @@ export default {
     if (url.pathname === "/api/ideas" && req.method === "GET") {
       const session = await getSession(req, env);
       const voter = session?.handle || getVoterId(req);
-      const rawLimit = Number.parseInt(url.searchParams.get("limit") || "20", 10);
+      const rawLimit = Number.parseInt(url.searchParams.get("limit") || "15", 10);
       const rawOffset = Number.parseInt(url.searchParams.get("offset") || "0", 10);
-      const limit = Number.isFinite(rawLimit) ? Math.min(Math.max(rawLimit, 1), 50) : 20;
+      const limit = Number.isFinite(rawLimit) ? Math.min(Math.max(rawLimit, 1), 50) : 15;
       const offset = Number.isFinite(rawOffset) ? Math.max(rawOffset, 0) : 0;
       const { results } = await env.DB.prepare(
         `SELECT ideas.id, ideas.content, ideas.author, ideas.upvotes,

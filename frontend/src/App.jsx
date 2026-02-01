@@ -6,7 +6,7 @@ const API_BASE = import.meta.env.DEV
   ? "http://localhost:8787/api"
   : "/api";
 const AUTH_BASE = import.meta.env.DEV ? "http://localhost:8787" : "";
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 15;
 const PINNED_STORAGE_KEY = "pinned_ideas";
 
 function getStoredToken() {
