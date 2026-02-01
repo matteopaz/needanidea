@@ -263,8 +263,8 @@ export default {
       const author = anonymous ? "anonymous" : session.handle;
       const token = body.token;
 
-      if (!content || content.length > 100) {
-        return jsonResponse({ error: "Content must be 1-100 characters" }, 400);
+      if (!content || content.length > 200) {
+        return jsonResponse({ error: "Content must be 1-200 characters" }, 400);
       }
 
       const captcha = await verifyTurnstile(token, req, env);
@@ -309,10 +309,18 @@ export default {
       }
 
       if (req.method === "GET") {
+        const session = await getSession(req, env);
+        const voter = session?.handle || getVoterId(req);
         const { results } = await env.DB.prepare(
-          "SELECT id, content, author, created_at FROM comments WHERE idea_id = ?1 ORDER BY id DESC"
+          `SELECT c.id, c.content, c.author, c.created_at, c.upvotes,
+            COALESCE(v.delta, 0) AS my_vote
+           FROM comments c
+           LEFT JOIN comment_votes v
+             ON v.comment_id = c.id AND v.voter = ?2
+           WHERE c.idea_id = ?1
+           ORDER BY c.id DESC`
         )
-          .bind(id)
+          .bind(id, voter)
           .all();
         return jsonResponse({ comments: results });
       }
@@ -333,19 +341,90 @@ export default {
         const session = await getSession(req, env);
         const author = session?.handle || "anonymous";
         const result = await env.DB.prepare(
-          "INSERT INTO comments (idea_id, content, author) VALUES (?1, ?2, ?3)"
+          "INSERT INTO comments (idea_id, content, author, upvotes) VALUES (?1, ?2, ?3, 0)"
         )
           .bind(id, content, author)
           .run();
 
         const comment = await env.DB.prepare(
-          "SELECT id, content, author, created_at FROM comments WHERE id = ?1"
+          "SELECT id, content, author, created_at, upvotes, 0 AS my_vote FROM comments WHERE id = ?1"
         )
           .bind(result.meta.last_row_id)
           .first();
 
         return jsonResponse(comment, 201);
       }
+    }
+
+    if (url.pathname.startsWith("/api/comments/") && url.pathname.endsWith("/vote")) {
+      const parts = url.pathname.split("/");
+      const id = Number(parts[3]);
+      if (!id || req.method !== "POST") {
+        return jsonResponse({ error: "Not found" }, 404);
+      }
+
+      let body;
+      try {
+        body = await req.json();
+      } catch {
+        return jsonResponse({ error: "Invalid JSON" }, 400);
+      }
+
+      const delta = Number(body.delta);
+      if (![1, -1].includes(delta)) {
+        return jsonResponse({ error: "delta must be 1 or -1" }, 400);
+      }
+
+      const commentExists = await env.DB.prepare("SELECT id FROM comments WHERE id = ?1")
+        .bind(id)
+        .first();
+      if (!commentExists) {
+        return jsonResponse({ error: "Not found" }, 404);
+      }
+
+      const session = await getSession(req, env);
+      const voter = session?.handle || getVoterId(req);
+      const existingVote = await env.DB.prepare(
+        "SELECT delta FROM comment_votes WHERE comment_id = ?1 AND voter = ?2"
+      )
+        .bind(id, voter)
+        .first();
+
+      if (!existingVote) {
+        await env.DB.prepare(
+          "INSERT INTO comment_votes (comment_id, voter, delta) VALUES (?1, ?2, ?3)"
+        )
+          .bind(id, voter, delta)
+          .run();
+
+        await env.DB.prepare("UPDATE comments SET upvotes = upvotes + ?1 WHERE id = ?2")
+          .bind(delta, id)
+          .run();
+      } else if (existingVote.delta !== delta) {
+        const diff = delta - existingVote.delta;
+        await env.DB.prepare(
+          "UPDATE comment_votes SET delta = ?1 WHERE comment_id = ?2 AND voter = ?3"
+        )
+          .bind(delta, id, voter)
+          .run();
+
+        await env.DB.prepare("UPDATE comments SET upvotes = upvotes + ?1 WHERE id = ?2")
+          .bind(diff, id)
+          .run();
+      }
+
+      const comment = await env.DB.prepare(
+        `SELECT c.id, c.content, c.author, c.created_at, c.upvotes,
+          COALESCE(v.delta, 0) AS my_vote
+         FROM comments c
+         LEFT JOIN comment_votes v
+           ON v.comment_id = c.id AND v.voter = ?2
+         WHERE c.id = ?1`
+      )
+        .bind(id, voter)
+        .first();
+
+      return jsonResponse(comment);
     }
 
     if (url.pathname.startsWith("/api/ideas/") && req.method === "POST") {

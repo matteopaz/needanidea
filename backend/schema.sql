@@ -32,7 +32,16 @@ CREATE TABLE IF NOT EXISTS comments (
   idea_id INTEGER NOT NULL,
   author TEXT NOT NULL,
   content TEXT NOT NULL,
+  upvotes INTEGER NOT NULL DEFAULT 0,
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
 CREATE INDEX IF NOT EXISTS comments_idea_id ON comments(idea_id);
+
+CREATE TABLE IF NOT EXISTS comment_votes (
+  comment_id INTEGER NOT NULL,
+  voter TEXT NOT NULL,
+  delta INTEGER NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  PRIMARY KEY (comment_id, voter)
+);

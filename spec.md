@@ -20,7 +20,7 @@ Each idea is just its content, the author, and an upvote count. upvote / downvot
 
 # Ideas
 Ideas are pulled/stored on server. 
-An idea consists of just a string less than 100 characters in length. It's only other attributes are author (below 20 characters), and upvote count (int).
+An idea consists of just a string less than 200 characters in length. It's only other attributes are author (below 20 characters), and upvote count (int).
 
 # Creating ideas
 

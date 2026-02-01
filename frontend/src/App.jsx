@@ -1,10 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from "preact/hooks";
+import Composer from "./components/Composer.jsx";
+import Feed from "./components/Feed.jsx";
 
 const API_BASE = import.meta.env.DEV
   ? "http://localhost:8787/api"
   : "/api";
 const AUTH_BASE = import.meta.env.DEV ? "http://localhost:8787" : "";
 const PAGE_SIZE = 20;
+const PINNED_STORAGE_KEY = "pinned_ideas";
 
 function getStoredToken() {
   try {
@@ -30,6 +33,46 @@ function clearStoredToken() {
   }
 }
 
+function loadPinnedIds() {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = sessionStorage.getItem(PINNED_STORAGE_KEY) || "[]";
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.map((id) => Number(id)).filter((id) => Number.isFinite(id));
+  } catch {
+    return [];
+  }
+}
+
+function savePinnedIds(ids) {
+  if (typeof window === "undefined") return;
+  try {
+    sessionStorage.setItem(PINNED_STORAGE_KEY, JSON.stringify(ids));
+  } catch {
+    return;
+  }
+}
+
+function applyPinnedOrder(list, pinnedIds) {
+  if (!pinnedIds.length) return list;
+  const byId = new Map();
+  list.forEach((item) => {
+    if (!byId.has(item.id)) {
+      byId.set(item.id, item);
+    }
+  });
+  const pinned = [];
+  pinnedIds.forEach((id) => {
+    const item = byId.get(id);
+    if (item) {
+      pinned.push(item);
+      byId.delete(id);
+    }
+  });
+  return [...pinned, ...byId.values()];
+}
+
 export default function App() {
   const [ideas, setIdeas] = useState([]);
   const [content, setContent] = useState("");
@@ -47,11 +90,17 @@ export default function App() {
   const [commentsByIdea, setCommentsByIdea] = useState({});
   const [commentDrafts, setCommentDrafts] = useState({});
   const [commentLoading, setCommentLoading] = useState({});
+  const [pinnedIds, setPinnedIds] = useState(() => loadPinnedIds());
   const turnstileContainerRef = useRef(null);
   const turnstileWidgetIdRef = useRef(null);
   const sentinelRef = useRef(null);
   const loadingRef = useRef(false);
   const transitionRef = useRef([]);
+  const pinnedIdsRef = useRef(pinnedIds);
+
+  useEffect(() => {
+    pinnedIdsRef.current = pinnedIds;
+  }, [pinnedIds]);
 
   function authHeaders() {
     const token = getStoredToken();
@@ -124,7 +173,10 @@ export default function App() {
     }
     const data = await res.json();
     const nextIdeas = data.ideas || [];
-    setIdeas((list) => (replace ? nextIdeas : [...list, ...nextIdeas]));
+    setIdeas((list) => {
+      const combined = replace ? nextIdeas : [...list, ...nextIdeas];
+      return applyPinnedOrder(combined, pinnedIdsRef.current);
+    });
     setHasMore(nextIdeas.length === PAGE_SIZE);
     setLoading(false);
     loadingRef.current = false;
@@ -170,6 +222,10 @@ export default function App() {
     }
   }
 
+  function updateCommentDraft(ideaId, value) {
+    setCommentDrafts((prev) => ({ ...prev, [ideaId]: value }));
+  }
+
   async function postComment(ideaId) {
     const draft = (commentDrafts[ideaId] || "").trim();
     if (!draft) {
@@ -208,6 +264,26 @@ export default function App() {
           : item
       )
     );
+  }
+
+  async function voteComment(ideaId, commentId, delta) {
+    const res = await fetch(`${API_BASE}/comments/${commentId}/vote`, {
+      method: "POST",
+      headers: { "content-type": "application/json", ...authHeaders() },
+      body: JSON.stringify({ delta }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      setStatus(err.error || "comment vote failed");
+      return;
+    }
+    const updated = await res.json();
+    setCommentsByIdea((prev) => ({
+      ...prev,
+      [ideaId]: (prev[ideaId] || []).map((item) =>
+        item.id === updated.id ? updated : item
+      ),
+    }));
   }
 
   async function postIdea() {
@@ -252,6 +328,13 @@ export default function App() {
       return;
     }
 
+    const newIdea = await res.json();
+    setPinnedIds((prev) => {
+      const next = [newIdea.id, ...prev.filter((id) => id !== newIdea.id)];
+      savePinnedIds(next);
+      pinnedIdsRef.current = next;
+      return next;
+    });
     setContent("");
     if (window.turnstile && turnstileWidgetIdRef.current !== null) {
       window.turnstile.reset(turnstileWidgetIdRef.current);
@@ -373,180 +456,45 @@ export default function App() {
     <main>
       <div className={`layout${isMobile ? " is-mobile" : ""}`}>
         {showFeed ? (
-          <section className={`feed${fadeClass ? ` ${fadeClass}` : ""}`}>
-            <div className="feed-header">
-              <h1>need an idea?</h1>
-              {isMobile && mobileView === "feed" ? (
-                <button className="mobile-cta" onClick={() => switchMobileView("composer")}>
-                  have an idea? -&gt;
-                </button>
-              ) : null}
-            </div>
-            <section id="ideas">
-              {ideas.map((idea) => (
-              <div className="idea" key={idea.id}>
-                <div className="idea-row">
-                  <div className="idea-content">
-                    <p className="idea-text">{idea.content}</p>
-                  </div>
-                  <div className="votes">
-                    <button
-                      className={`vote-btn${idea.my_vote === 1 ? " is-active" : ""}`}
-                      onClick={() => vote(idea, 1)}
-                    >
-                      ▲
-                    </button>
-                    <div className="vote-count">{idea.upvotes}</div>
-                    <button
-                      className={`vote-btn${idea.my_vote === -1 ? " is-active" : ""}`}
-                      onClick={() => vote(idea, -1)}
-                    >
-                      ▼
-                    </button>
-                  </div>
-                </div>
-                <div className="idea-meta-row">
-                  <div className="idea-meta">{idea.author}</div>
-                  <button
-                    className="comment-toggle"
-                    onClick={() => toggleComments(idea.id)}
-                  >
-                    {commentOpen[idea.id]
-                      ? "hide comments"
-                      : (idea.comment_count || 0) === 0
-                      ? "leave a comment"
-                      : `show ${idea.comment_count || 0} comment${
-                          (idea.comment_count || 0) === 1 ? "" : "s"
-                        }`}
-                  </button>
-                </div>
-                {idea.top_comment || commentOpen[idea.id] ? (
-                  <div className="comment-thread">
-                    {idea.top_comment ? (
-                      <div className="comment-preview">
-                        “{idea.top_comment}”
-                        <span className="comment-preview-author">
-                          — {idea.top_comment_author}
-                        </span>
-                      </div>
-                    ) : null}
-                    {commentOpen[idea.id] ? (
-                      <div className="comment-panel">
-                        {commentLoading[idea.id] ? (
-                          <div className="comment-muted">loading...</div>
-                        ) : null}
-                        {!commentLoading[idea.id] &&
-                        (commentsByIdea[idea.id] || []).length === 0 ? (
-                          <div className="comment-muted">no comments yet</div>
-                        ) : null}
-                        {(commentsByIdea[idea.id] || [])
-                          .filter((comment, index) => {
-                            if (!idea.top_comment) return true;
-                            if (index !== 0) return true;
-                            return (
-                              comment.content !== idea.top_comment ||
-                              comment.author !== idea.top_comment_author
-                            );
-                          })
-                          .map((comment) => (
-                            <div className="comment-item" key={comment.id}>
-                              <span className="comment-content">{comment.content}</span>
-                              <span className="comment-author">— {comment.author}</span>
-                            </div>
-                          ))}
-                        <div className="comment-form">
-                          <textarea
-                            className="comment-input"
-                            maxLength={200}
-                            placeholder="leave a comment (max 200)"
-                            value={commentDrafts[idea.id] || ""}
-                            rows={2}
-                            onInput={(e) =>
-                              setCommentDrafts((prev) => ({
-                                ...prev,
-                                [idea.id]: e.target.value,
-                              }))
-                            }
-                          />
-                          <button
-                            className="comment-submit"
-                            onClick={() => postComment(idea.id)}
-                          >
-                            comment
-                          </button>
-                        </div>
-                      </div>
-                    ) : null}
-                  </div>
-                ) : null}
-              </div>
-            ))}
-            </section>
-            <div className="sentinel" ref={sentinelRef}>
-              {loading ? "loading..." : hasMore ? "" : "no more ideas :("}
-            </div>
-          </section>
+          <Feed
+            ideas={ideas}
+            loading={loading}
+            hasMore={hasMore}
+            sentinelRef={sentinelRef}
+            isMobile={isMobile}
+            mobileView={mobileView}
+            onMobileCta={() => switchMobileView("composer")}
+            fadeClass={fadeClass}
+            onVote={vote}
+            commentOpen={commentOpen}
+            toggleComments={toggleComments}
+            commentLoading={commentLoading}
+            commentsByIdea={commentsByIdea}
+            commentDrafts={commentDrafts}
+            onDraftChange={updateCommentDraft}
+            onPostComment={postComment}
+            onVoteComment={voteComment}
+          />
         ) : null}
-
         {showComposer ? (
-          <aside className={`composer${fadeClass ? ` ${fadeClass}` : ""}`}>
-            <div className="composer-header">
-              <h2 className="sidebar-header">have an idea?</h2>
-              {isMobile && mobileView === "composer" ? (
-                <button className="mobile-cta" onClick={() => switchMobileView("feed")}>
-                  need an idea? -&gt;
-                </button>
-              ) : null}
-            </div>
-            <hr />
-            {user ? (
-              <div className="auth-row">
-                <span>signed in as {user.handle}</span>
-                <button className="auth-btn" onClick={signOut}>
-                  sign out
-                </button>
-              </div>
-            ) : authReady ? (
-              <button className="auth-btn" onClick={startAuth}>
-                sign in with 𝕏
-              </button>
-            ) : null}
-            <div>
-              <textarea
-                id="idea-input"
-                maxLength={100}
-                placeholder="something that should exist (max 100 char.)"
-                value={content}
-                rows={3}
-                onInput={(e) => setContent(e.target.value)}
-              />
-            </div>
-            <div className="composer-actions">
-              {user ? (
-                <button
-                  type="button"
-                  className={`anon-toggle${anonymous ? " is-anon" : ""}`}
-                  onClick={() => setAnonymous((value) => !value)}
-                >
-                  <span className="anon-track">
-                    <span className="anon-option anon-user">{user.handle}</span>
-                    <span className="anon-option anon-anon">anonymous</span>
-                  </span>
-                </button>
-              ) : (
-                <div className="anon-label">anonymous</div>
-              )}
-              <button id="post-btn" onClick={postIdea}>
-                post
-              </button>
-            </div>
-            {showCaptcha ? (
-              <div className="captcha-wrap">
-                <div ref={turnstileContainerRef}></div>
-              </div>
-            ) : null}
-            <div id="status">{status}</div>
-          </aside>
+          <Composer
+            user={user}
+            authReady={authReady}
+            onSignIn={startAuth}
+            onSignOut={signOut}
+            content={content}
+            onContentChange={setContent}
+            anonymous={anonymous}
+            onToggleAnonymous={() => setAnonymous((value) => !value)}
+            onPost={postIdea}
+            showCaptcha={showCaptcha}
+            turnstileRef={turnstileContainerRef}
+            status={status}
+            isMobile={isMobile}
+            mobileView={mobileView}
+            onMobileCta={() => switchMobileView("feed")}
+            fadeClass={fadeClass}
+          />
         ) : null}
       </div>
     </main>

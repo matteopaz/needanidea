@@ -1,0 +1,85 @@
+.idea {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border-bottom: 1px solid var(--line);
+  padding: 0 0.5vw var(--spacing);
+}
+
+.idea-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--spacing);
+}
+
+.idea-content {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.idea-meta-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.idea-text {
+  font-size: 18px;
+  margin: 0 0 6px;
+}
+
+.idea-meta {
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.votes {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.vote-btn {
+  background: transparent;
+  border: none;
+  width: 20px;
+  height: 20px;
+  font-size: 14px;
+  line-height: 1;
+  padding: 0;
+  cursor: pointer;
+  opacity: 0.5;
+}
+
+.vote-btn.is-active {
+  font-weight: 600;
+  opacity: 0.9;
+}
+
+.vote-count {
+  font-size: 14px;
+  color: var(--muted);
+  min-width: 24px;
+  text-align: center;
+}
+
+.comment-toggle {
+  border: none;
+  padding: 0;
+  background: transparent;
+  color: var(--muted);
+  font-family: inherit;
+  font-style: italic;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.comment-toggle:hover {
+  color: var(--text);
+}

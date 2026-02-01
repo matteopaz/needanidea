@@ -1,0 +1,154 @@
+.composer {
+  position: sticky;
+  top: 40px;
+  align-self: flex-start;
+  width: 320px;
+  border-left: 1px solid var(--line);
+  padding-left: 24px;
+  display: grid;
+  gap: 14px;
+}
+
+.composer-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.auth-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.auth-btn {
+  padding: 10px 10px;
+  border: 1px solid var(--line);
+  background: transparent;
+  font-family: inherit;
+  font-size: 14px;
+  cursor: pointer;
+  background: var(--text);
+  color: var(--bg);
+}
+
+#idea-input {
+  margin-bottom: 8px;
+  height: 150px;
+}
+
+.composer-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.anon-toggle {
+  position: relative;
+  overflow: hidden;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  min-width: 14ch;
+  max-width: 20ch;
+  text-align: left;
+  font-family: inherit;
+  font-size: 14px;
+  opacity: 0.75;
+  transition: opacity 150ms ease;
+}
+
+.anon-toggle:hover {
+  opacity: 1;
+}
+
+.anon-track {
+  display: flex;
+  width: 200%;
+  transform: translateX(0);
+  transition: transform 220ms ease;
+  will-change: transform;
+}
+
+.anon-toggle.is-anon .anon-track {
+  transform: translateX(-50%);
+}
+
+.anon-option,
+.anon-label {
+  display: inline-flex;
+  align-items: center;
+  width: 50%;
+  flex: 0 0 50%;
+  font-size: 14px;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.anon-option.anon-user {
+  font-style: italic;
+}
+
+.anon-option.anon-anon {
+  font-style: normal;
+}
+
+.anon-label {
+  font-style: italic;
+  width: auto;
+}
+
+button#post-btn {
+  padding: 10px 16px;
+  border: 1px solid var(--line);
+  background: transparent;
+  font-family: inherit;
+  font-size: 16px;
+  cursor: pointer;
+  width: fit-content;
+  color: var(--muted);
+}
+
+button#post-btn:hover {
+  border-color: var(--text);
+  color: var(--text);
+}
+
+#status {
+  font-size: 14px;
+  color: var(--muted);
+  min-height: 20px;
+}
+
+.what-is {
+  margin-top: 6px;
+  padding-top: 12px;
+  font-size: 14px;
+  display: grid;
+  gap: 6px;
+}
+
+.what-is p {
+  margin: 0;
+  line-height: 1.4;
+  color: var(--muted);
+  font-style: italic;
+}
+
+@media (max-width: 900px) {
+  .composer {
+    position: static;
+    width: 100%;
+    border-left: none;
+    padding-left: 0;
+    margin-top: 0;
+    padding-top: 0;
+  }
+}

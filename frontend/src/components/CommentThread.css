@@ -1,0 +1,147 @@
+.comment-thread {
+  margin-top: 8px;
+  padding-left: 14px;
+  border-left: 1px solid var(--line);
+}
+
+.comment-preview {
+  font-size: 14px;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.comment-preview-button {
+  display: inline-block;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font-family: inherit;
+  font-size: 14px;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  text-align: left;
+}
+
+.comment-preview-button:hover {
+  color: var(--text);
+}
+
+.comment-thread.is-open .comment-preview {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: unset;
+}
+
+.comment-thread.is-open .comment-preview-button {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: unset;
+}
+
+.comment-preview-author {
+  margin-left: 6px;
+  font-style: italic;
+}
+
+.comment-panel {
+  margin-top: 10px;
+  display: grid;
+  gap: 8px;
+}
+
+.comment-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 14px;
+  color: var(--text);
+}
+
+.comment-body {
+  min-width: 0;
+  flex: 1;
+}
+
+.comment-content {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.comment-author {
+  margin-left: 6px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.comment-muted {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.comment-form {
+  display: grid;
+  gap: 6px;
+}
+
+.comment-votes {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.comment-vote-btn {
+  background: transparent;
+  border: none;
+  width: 16px;
+  height: 16px;
+  font-size: 12px;
+  line-height: 1;
+  padding: 0;
+  cursor: pointer;
+  opacity: 0.5;
+}
+
+.comment-vote-btn.is-active {
+  font-weight: 600;
+  opacity: 0.9;
+}
+
+.comment-vote-count {
+  font-size: 12px;
+  color: var(--muted);
+  min-width: 18px;
+  text-align: center;
+}
+
+.comment-input {
+  border-bottom: 1px solid var(--line);
+  resize: none;
+  overflow: hidden;
+  width: 100%;
+  padding: 4px;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.comment-submit {
+  justify-self: end;
+  padding: 6px 12px;
+  border: 1px solid var(--line);
+  background: transparent;
+  font-family: inherit;
+  font-size: 14px;
+  cursor: pointer;
+  color: var(--muted);
+}
+
+.comment-submit:hover {
+  border-color: var(--text);
+  color: var(--text);
+}
