@@ -14,12 +14,14 @@ export default function IdeaCard({
   onVoteComment,
 }) {
   const commentCount = idea.comment_count || 0;
+  const authorLabel = idea.author || "anonymous";
   const commentLabel = isOpen
     ? "hide comments"
     : commentCount === 0
     ? "leave a comment..."
     : `show ${commentCount} comment${commentCount === 1 ? "" : "s"}`;
   const showThread = Boolean(idea.top_comment) || isOpen;
+  const authorLink = getXProfileUrl(authorLabel);
 
   return (
     <div className="idea">
@@ -44,7 +46,20 @@ export default function IdeaCard({
         </div>
       </div>
       <div className="idea-meta-row">
-        <div className="idea-meta">{idea.author}</div>
+        <div className="idea-meta">
+          {authorLink ? (
+            <a
+              className="author-link"
+              href={authorLink}
+              target="_blank"
+              rel="noreferrer noopener"
+            >
+              {authorLabel}
+            </a>
+          ) : (
+            authorLabel
+          )}
+        </div>
         <button className="comment-toggle" onClick={onToggleComments}>
           {commentLabel}
         </button>
@@ -65,4 +80,13 @@ export default function IdeaCard({
       ) : null}
     </div>
   );
+}
+
+function getXProfileUrl(author) {
+  if (!author) return "";
+  const trimmed = author.trim();
+  if (!trimmed.startsWith("@")) return "";
+  const handle = trimmed.slice(1);
+  if (!handle) return "";
+  return `https://x.com/${encodeURIComponent(handle)}`;
 }
