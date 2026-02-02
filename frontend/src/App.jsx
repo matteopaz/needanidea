@@ -465,7 +465,7 @@ export default function App() {
       if (turnstileWidgetIdRef.current !== null) return;
       turnstileWidgetIdRef.current = window.turnstile.render(
         turnstileContainerRef.current,
-        { sitekey: "1x00000000000000000000AA" }
+        { sitekey: "0x4AAAAAACWiWyPsPuepbbp9" }
       );
     }
 
