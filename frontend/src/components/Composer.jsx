@@ -53,25 +53,25 @@ export default function Composer({
           rows={3}
           onInput={(e) => onContentChange(e.target.value)}
         />
-      </div>
-      <div className="composer-actions">
-        {user ? (
-          <button
-            type="button"
-            className={`anon-toggle${anonymous ? " is-anon" : ""}`}
-            onClick={onToggleAnonymous}
-          >
-            <span className="anon-track">
-              <span className="anon-option anon-user">{user.handle}</span>
-              <span className="anon-option anon-anon">anonymous</span>
-            </span>
+        <div className="composer-actions">
+          {user ? (
+            <button
+              type="button"
+              className={`anon-toggle${anonymous ? " is-anon" : ""}`}
+              onClick={onToggleAnonymous}
+            >
+              <span className="anon-track">
+                <span className="anon-option anon-user">{user.handle}</span>
+                <span className="anon-option anon-anon">anonymous</span>
+              </span>
+            </button>
+          ) : (
+            <div className="anon-label">anonymous</div>
+          )}
+          <button id="post-btn" onClick={onPost}>
+            post
           </button>
-        ) : (
-          <div className="anon-label">anonymous</div>
-        )}
-        <button id="post-btn" onClick={onPost}>
-          post
-        </button>
+        </div>
       </div>
       {showCaptcha ? (
         <div className="captcha-wrap">
