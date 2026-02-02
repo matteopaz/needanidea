@@ -77,6 +77,10 @@ export default function App() {
   const [ideas, setIdeas] = useState([]);
   const [content, setContent] = useState("");
   const [status, setStatus] = useState("");
+  const [leaderboard, setLeaderboard] = useState([]);
+  const [leaderboardMe, setLeaderboardMe] = useState(null);
+  const [leaderboardStatus, setLeaderboardStatus] = useState("");
+  const [leaderboardLoading, setLeaderboardLoading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [showCaptcha, setShowCaptcha] = useState(false);
@@ -95,6 +99,7 @@ export default function App() {
   const turnstileWidgetIdRef = useRef(null);
   const sentinelRef = useRef(null);
   const loadingRef = useRef(false);
+  const leaderboardLoadingRef = useRef(false);
   const transitionRef = useRef([]);
   const pinnedIdsRef = useRef(pinnedIds);
 
@@ -160,6 +165,7 @@ export default function App() {
   const fetchIdeasPage = useCallback(async (offset, replace = false) => {
     if (loadingRef.current) return;
     loadingRef.current = true;
+    const loadStart = typeof performance !== "undefined" ? performance.now() : Date.now();
     setLoading(true);
     const res = await fetch(
       `${API_BASE}/ideas?limit=${PAGE_SIZE}&offset=${offset}`,
@@ -173,6 +179,11 @@ export default function App() {
     }
     const data = await res.json();
     const nextIdeas = data.ideas || [];
+    const loadEnd = typeof performance !== "undefined" ? performance.now() : Date.now();
+    const remaining = 400 - (loadEnd - loadStart);
+    if (remaining > 0) {
+      await new Promise((resolve) => setTimeout(resolve, remaining));
+    }
     setIdeas((list) => {
       const combined = replace ? nextIdeas : [...list, ...nextIdeas];
       return applyPinnedOrder(combined, pinnedIdsRef.current);
@@ -180,6 +191,30 @@ export default function App() {
     setHasMore(nextIdeas.length === PAGE_SIZE);
     setLoading(false);
     loadingRef.current = false;
+  }, []);
+
+  const fetchLeaderboard = useCallback(async () => {
+    if (leaderboardLoadingRef.current) return;
+    leaderboardLoadingRef.current = true;
+    setLeaderboardLoading(true);
+    setLeaderboardStatus("");
+    try {
+      const res = await fetch(`${API_BASE}/leaderboard?limit=10`, {
+        headers: authHeaders(),
+      });
+      if (!res.ok) {
+        setLeaderboardStatus("failed to load leaderboard");
+        return;
+      }
+      const data = await res.json();
+      setLeaderboard(data.leaderboard || []);
+      setLeaderboardMe(data.me || null);
+    } catch {
+      setLeaderboardStatus("failed to load leaderboard");
+    } finally {
+      setLeaderboardLoading(false);
+      leaderboardLoadingRef.current = false;
+    }
   }, []);
 
   async function vote(idea, delta) {
@@ -197,6 +232,7 @@ export default function App() {
     }
     const updated = await res.json();
     setIdeas((list) => list.map((item) => (item.id === updated.id ? updated : item)));
+    fetchLeaderboard();
   }
 
   async function fetchComments(ideaId) {
@@ -264,6 +300,7 @@ export default function App() {
           : item
       )
     );
+    fetchLeaderboard();
   }
 
   async function voteComment(ideaId, commentId, delta) {
@@ -344,6 +381,7 @@ export default function App() {
     setHasMore(true);
     setShowCaptcha(false);
     fetchIdeasPage(0, true);
+    fetchLeaderboard();
     if (isMobile) {
       switchMobileView("feed");
     }
@@ -361,6 +399,7 @@ export default function App() {
     setUser(null);
     setAnonymous(true);
     setAuthReady(true);
+    setLeaderboardMe(null);
   }
 
   useEffect(() => {
@@ -375,7 +414,8 @@ export default function App() {
     }
     loadMe();
     fetchIdeasPage(0, true);
-  }, [fetchIdeasPage]);
+    fetchLeaderboard();
+  }, [fetchIdeasPage, fetchLeaderboard]);
 
   useEffect(() => {
     if (user) {
@@ -490,6 +530,10 @@ export default function App() {
             showCaptcha={showCaptcha}
             turnstileRef={turnstileContainerRef}
             status={status}
+            leaderboard={leaderboard}
+            leaderboardMe={leaderboardMe}
+            leaderboardStatus={leaderboardStatus}
+            leaderboardLoading={leaderboardLoading}
             isMobile={isMobile}
             mobileView={mobileView}
             onMobileCta={() => switchMobileView("feed")}

@@ -9,6 +9,22 @@
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 32px;
+  position: relative;
+  padding-bottom: var(--spacing);
+}
+
+.feed-header::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-bottom: 2px solid var(--line);
+}
+
+.feed-header h1 {
+  border-bottom: none;
+  padding-bottom: 0;
 }
 
 #ideas {
@@ -21,4 +37,47 @@
   font-size: 14px;
   color: var(--muted);
   padding: 16px 0;
+}
+
+@media (max-width: 900px) {
+  .feed-header {
+    align-items: baseline;
+    gap: 8px;
+  }
+}
+
+.loading-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 12px;
+}
+
+.loading-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.35;
+  animation: dotPulse 900ms ease-in-out infinite;
+}
+
+.loading-dot:nth-child(2) {
+  animation-delay: 150ms;
+}
+
+.loading-dot:nth-child(3) {
+  animation-delay: 300ms;
+}
+
+@keyframes dotPulse {
+  0%,
+  100% {
+    opacity: 0.25;
+    transform: translateY(0);
+  }
+  50% {
+    opacity: 0.9;
+    transform: translateY(-2px);
+  }
 }

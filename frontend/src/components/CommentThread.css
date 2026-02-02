@@ -72,6 +72,7 @@
 .comment-content {
   overflow-wrap: anywhere;
   word-break: break-word;
+  color: var(--muted);
 }
 
 .comment-author {

@@ -26,7 +26,7 @@ export default function Feed({
         <h1>need an idea?</h1>
         {isMobile && mobileView === "feed" ? (
           <button className="mobile-cta" onClick={onMobileCta}>
-            have an idea? -&gt;
+            have an idea? →
           </button>
         ) : null}
       </div>
@@ -50,7 +50,17 @@ export default function Feed({
         ))}
       </section>
       <div className="sentinel" ref={sentinelRef}>
-        {loading ? "loading..." : hasMore ? "" : "no more ideas :("}
+        {loading ? (
+          <div className="loading-dots" role="status" aria-label="loading">
+            <span className="loading-dot" />
+            <span className="loading-dot" />
+            <span className="loading-dot" />
+          </div>
+        ) : hasMore ? (
+          ""
+        ) : (
+          "no more ideas :("
+        )}
       </div>
     </section>
   );

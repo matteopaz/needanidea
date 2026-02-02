@@ -218,6 +218,99 @@ export default {
       return jsonResponse({ user: session ? { handle: session.handle } : null });
     }
 
+    if (url.pathname === "/api/leaderboard" && req.method === "GET") {
+      const session = await getSession(req, env);
+      const rawLimit = Number.parseInt(url.searchParams.get("limit") || "10", 10);
+      const limit = Number.isFinite(rawLimit) ? Math.min(Math.max(rawLimit, 1), 50) : 10;
+      const { results } = await env.DB.prepare(
+        `WITH handles AS (
+           SELECT DISTINCT handle FROM sessions
+           UNION
+           SELECT DISTINCT author FROM ideas WHERE author <> 'anonymous'
+           UNION
+           SELECT DISTINCT author FROM comments WHERE author <> 'anonymous'
+         ),
+         scores AS (
+           SELECT h.handle,
+             COALESCE(i.upvotes_total, 0) AS upvote_total,
+             COALESCE(c.reply_count, 0) AS reply_count,
+             (COALESCE(i.upvotes_total, 0) + COALESCE(c.reply_count, 0) * 10) AS score
+           FROM handles h
+           LEFT JOIN (
+             SELECT author, SUM(upvotes) AS upvotes_total
+             FROM ideas
+             WHERE author <> 'anonymous'
+             GROUP BY author
+           ) i ON i.author = h.handle
+           LEFT JOIN (
+             SELECT author, COUNT(1) AS reply_count
+             FROM comments
+             WHERE author <> 'anonymous'
+             GROUP BY author
+           ) c ON c.author = h.handle
+         ),
+         ranked AS (
+           SELECT *,
+             RANK() OVER (
+               ORDER BY score DESC, upvote_total DESC, reply_count DESC, handle ASC
+             ) AS rank
+           FROM scores
+         )
+         SELECT handle, upvote_total, reply_count, score, rank
+         FROM ranked
+         ORDER BY rank ASC
+         LIMIT ?1`
+      )
+        .bind(limit)
+        .all();
+
+      let me = null;
+      if (session?.handle) {
+        me = await env.DB.prepare(
+          `WITH handles AS (
+             SELECT DISTINCT handle FROM sessions
+             UNION
+             SELECT DISTINCT author FROM ideas WHERE author <> 'anonymous'
+             UNION
+             SELECT DISTINCT author FROM comments WHERE author <> 'anonymous'
+           ),
+           scores AS (
+             SELECT h.handle,
+               COALESCE(i.upvotes_total, 0) AS upvote_total,
+               COALESCE(c.reply_count, 0) AS reply_count,
+               (COALESCE(i.upvotes_total, 0) + COALESCE(c.reply_count, 0) * 10) AS score
+             FROM handles h
+             LEFT JOIN (
+               SELECT author, SUM(upvotes) AS upvotes_total
+               FROM ideas
+               WHERE author <> 'anonymous'
+               GROUP BY author
+             ) i ON i.author = h.handle
+             LEFT JOIN (
+               SELECT author, COUNT(1) AS reply_count
+               FROM comments
+               WHERE author <> 'anonymous'
+               GROUP BY author
+             ) c ON c.author = h.handle
+           ),
+           ranked AS (
+             SELECT *,
+               RANK() OVER (
+                 ORDER BY score DESC, upvote_total DESC, reply_count DESC, handle ASC
+               ) AS rank
+             FROM scores
+           )
+           SELECT handle, upvote_total, reply_count, score, rank
+           FROM ranked
+           WHERE handle = ?1`
+        )
+          .bind(session.handle)
+          .first();
+      }
+
+      return jsonResponse({ leaderboard: results, me });
+    }
+
     if (url.pathname === "/api/ideas" && req.method === "GET") {
       const session = await getSession(req, env);
       const voter = session?.handle || getVoterId(req);
@@ -318,7 +411,7 @@ export default {
            LEFT JOIN comment_votes v
              ON v.comment_id = c.id AND v.voter = ?2
            WHERE c.idea_id = ?1
-           ORDER BY c.id DESC`
+           ORDER BY c.upvotes DESC, c.id DESC`
         )
           .bind(id, voter)
           .all();

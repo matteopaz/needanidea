@@ -13,6 +13,10 @@ export default function Composer({
   showCaptcha,
   turnstileRef,
   status,
+  leaderboard,
+  leaderboardMe,
+  leaderboardStatus,
+  leaderboardLoading,
   isMobile,
   mobileView,
   onMobileCta,
@@ -24,7 +28,7 @@ export default function Composer({
         <h2 className="sidebar-header">have an idea?</h2>
         {isMobile && mobileView === "composer" ? (
           <button className="mobile-cta" onClick={onMobileCta}>
-            need an idea? -&gt;
+            need an idea? →
           </button>
         ) : null}
       </div>
@@ -83,6 +87,47 @@ export default function Composer({
           sometimes you come up with a great idea that you don't have the time for—something you want, something ultra-profitable, or just something that would make the world a little better. this is the place for those ideas to find a home.
         </p>
       </section>
+      <section className="leaderboard">
+        <h2 className="sidebar-header">leaderboard</h2>
+        {leaderboardLoading ? (
+          <div className="leaderboard-status">loading...</div>
+        ) : leaderboard.length ? (
+          <ol className="leaderboard-list">
+            {leaderboard.map((entry, index) => (
+              <li className="leaderboard-item" key={entry.handle || index}>
+                <span className="leaderboard-rank">{index + 1}.</span>
+                <div className="leaderboard-main">
+                  <span className="leaderboard-handle">{entry.handle}</span>
+                  <span className="leaderboard-meta">
+                    {entry.upvote_total} upvotes / {entry.reply_count} replies
+                  </span>
+                </div>
+                <span className="leaderboard-score">{entry.score}</span>
+              </li>
+            ))}
+          </ol>
+        ) : (
+          <div className="leaderboard-status">
+            {leaderboardStatus || "no ranked users yet."}
+          </div>
+        )}
+        {leaderboardMe ? (
+          <div className="leaderboard-me">
+            <div className="leaderboard-me-title">your rank</div>
+            <div className="leaderboard-me-row">
+              <span className="leaderboard-rank">{leaderboardMe.rank}.</span>
+              <div className="leaderboard-main">
+                <span className="leaderboard-handle">{leaderboardMe.handle}</span>
+                <span className="leaderboard-meta">
+                  {leaderboardMe.upvote_total} upvotes / {leaderboardMe.reply_count} replies
+                </span>
+              </div>
+              <span className="leaderboard-score">{leaderboardMe.score}</span>
+            </div>
+          </div>
+        ) : null}
+      </section>
+
     </aside>
   );
 }
