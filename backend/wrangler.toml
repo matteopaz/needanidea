@@ -9,11 +9,10 @@ routes = [
 
 [vars]
 X_CLIENT_ID = "X3dTT2t3REVldGwwQW1TQUUwTHg6MTpjaQ"
-X_REDIRECT_URI = "http://needanidea.xyz/auth/x/callback"
-X_SCOPES = "users.read"
+X_REDIRECT_URI = "https://needanidea.xyz/auth/x/callback"
+X_SCOPES = "users.read tweet.read"
 
 [[d1_databases]]
 binding = "DB"
 database_name = "needanidea"
 database_id = "12767718-8138-417a-90a3-b1654ca667dd"
-

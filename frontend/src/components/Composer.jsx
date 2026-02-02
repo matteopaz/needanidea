@@ -35,7 +35,7 @@ export default function Composer({
       {user ? (
         <div className="auth-row">
           <span>signed in as {user.handle}</span>
-          <button className="auth-btn" onClick={onSignOut}>
+          <button className="auth-btn auth-btn--signout" onClick={onSignOut}>
             sign out
           </button>
         </div>

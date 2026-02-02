@@ -65,6 +65,19 @@
   color: var(--bg);
 }
 
+.auth-btn--signout {
+  margin-left: auto;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font-style: italic;
+}
+
+.auth-btn--signout:hover {
+  color: var(--text);
+}
+
 #idea-input {
   margin-bottom: 8px;
   height: 150px;

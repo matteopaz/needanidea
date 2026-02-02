@@ -132,7 +132,7 @@ export default {
         response_type: "code",
         client_id: env.X_CLIENT_ID,
         redirect_uri: env.X_REDIRECT_URI,
-        scope: env.X_SCOPES || "users.read",
+        scope: env.X_SCOPES || "users.read tweet.read",
         state,
         code_challenge: codeChallenge,
         code_challenge_method: "S256",
@@ -188,6 +188,8 @@ export default {
         headers,
         body,
       });
+      const tokenText = await tokenResp.clone().text();
+      console.log("tokenResp", tokenResp.status, tokenText);
       const tokenData = await tokenResp.json();
       if (!tokenResp.ok) {
         return new Response("Token exchange failed", { status: 400 });
@@ -197,9 +199,20 @@ export default {
       const userResp = await fetch("https://api.x.com/2/users/me", {
         headers: { authorization: `Bearer ${accessToken}` },
       });
+      const userText = await userResp.clone().text();
+      console.log("userResp", userResp.status, userText);
+      if (!userResp.ok) {
+        const hint =
+          userResp.status === 403
+            ? "X returned 403. Check app permissions for User Lookup and reauthorize with users.read (and tweet.read if required)."
+            : "Failed to fetch user from X.";
+        return new Response(hint, { status: 400 });
+      }
       const userData = await userResp.json();
-      if (!userResp.ok || !userData.data?.username) {
-        return new Response("Failed to fetch user", { status: 400 });
+      if (!userData.data?.username) {
+        return new Response("Failed to parse user from X response.", {
+          status: 400,
+        });
       }
 
       const handle = `@${userData.data.username}`;
