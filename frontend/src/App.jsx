@@ -100,6 +100,7 @@ export default function App() {
   const sentinelRef = useRef(null);
   const loadingRef = useRef(false);
   const leaderboardLoadingRef = useRef(false);
+  const leaderboardLoadedRef = useRef(false);
   const transitionRef = useRef([]);
   const pinnedIdsRef = useRef(pinnedIds);
 
@@ -194,7 +195,7 @@ export default function App() {
   }, []);
 
   const fetchLeaderboard = useCallback(async () => {
-    if (leaderboardLoadingRef.current) return;
+    if (leaderboardLoadingRef.current || leaderboardLoadedRef.current) return;
     leaderboardLoadingRef.current = true;
     setLeaderboardLoading(true);
     setLeaderboardStatus("");
@@ -214,6 +215,7 @@ export default function App() {
     } finally {
       setLeaderboardLoading(false);
       leaderboardLoadingRef.current = false;
+      leaderboardLoadedRef.current = true;
     }
   }, []);
 
@@ -232,7 +234,6 @@ export default function App() {
     }
     const updated = await res.json();
     setIdeas((list) => list.map((item) => (item.id === updated.id ? updated : item)));
-    fetchLeaderboard();
   }
 
   async function fetchComments(ideaId) {
@@ -300,7 +301,6 @@ export default function App() {
           : item
       )
     );
-    fetchLeaderboard();
   }
 
   async function voteComment(ideaId, commentId, delta) {
@@ -381,7 +381,6 @@ export default function App() {
     setHasMore(true);
     setShowCaptcha(false);
     fetchIdeasPage(0, true);
-    fetchLeaderboard();
     if (isMobile) {
       switchMobileView("feed");
     }
